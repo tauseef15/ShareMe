@@ -30,7 +30,7 @@ exports.uploadFile = async (req, res) => {
 
     const response = await file.save();
 
-    res.json({ file: `${process.env.APP_BASE_URL}/files/${response.uuid}` });
+    res.json({ file: `${process.env.BASE_URL}/files/${response.uuid}` });
 
   } catch (err) {
     console.error('Upload Error:', err);
