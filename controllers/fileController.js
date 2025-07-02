@@ -1,5 +1,5 @@
 const multer = require('multer');
-const { v4: uuidv4 } = require('uuid'); // ✅ Correct import
+const { v4: uuidv4 } = require('uuid');
 const File = require('../models/file');
 const sendMail = require('../services/mailService');
 const path = require('path');
@@ -42,7 +42,8 @@ exports.getFile = async (req, res) => {
   try {
     const file = await File.findOne({ uuid: req.params.uuid });
     if (!file) {
-      return res.render('download', { locals: { error: 'File not found' } });
+      // FIXED: pass `error` directly, not inside a nested `locals` object
+      return res.render('download', { error: 'File not found' });
     }
 
     res.render('download', {
@@ -60,7 +61,7 @@ exports.downloadFile = async (req, res) => {
     const file = await File.findOne({ uuid: req.params.uuid });
     if (!file) return res.status(404).json({ error: 'File not found' });
 
-    const filePath = `${__dirname}/../${file.path}`;
+    const filePath = path.resolve(__dirname, '..', file.path); // safer than string concat
     res.download(filePath);
   } catch (err) {
     res.status(500).send({ error: 'Something went wrong' });
@@ -89,7 +90,7 @@ exports.sendFile = async (req, res) => {
     text: `${emailFrom} shared a file with you.`,
     html: `
       <p>${emailFrom} shared a file with you.</p>
-      <p>Click <a href="${process.env.BASE_URL}/api/files/${file.uuid}">here</a> to download.</p>
+      <p>Click <a href="${process.env.BASE_URL}/files/${file.uuid}">here</a> to download.</p>
       <p>Link expires in 24 hours.</p>
     `
   });
