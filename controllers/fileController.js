@@ -15,20 +15,27 @@ let storage = multer.diskStorage({
 
 let upload = multer({ storage, limits: { fileSize: 100000000 } }).single('myfile');
 
-exports.uploadFile = (req, res) => {
-  upload(req, res, async (err) => {
-    if (err) return res.status(500).send({ error: err.message });
+exports.uploadFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'File is required' });
+    }
 
     const file = new File({
       filename: req.file.filename,
-      uuid: uuid4(),
+      uuid: uuidv4(),
       path: req.file.path,
-      size: req.file.size
+      size: req.file.size,
     });
 
     const response = await file.save();
-    res.json({ file: `${process.env.BASE_URL}/api/files/${response.uuid}` });
-  });
+
+    res.json({ file: `${process.env.APP_BASE_URL}/files/${response.uuid}` });
+
+  } catch (err) {
+    console.error('Upload Error:', err);
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
 };
 
 exports.getFile = async (req, res) => {
@@ -64,48 +71,27 @@ exports.downloadFile = async (req, res) => {
 
 exports.sendFile = async (req, res) => {
   const { uuid, emailTo, emailFrom } = req.body;
+  if (!uuid || !emailTo || !emailFrom) return res.status(422).send({ error: 'All fields are required' });
 
-  // Validate
-  if (!uuid || !emailTo || !emailFrom) {
-    return res.status(422).send({ error: 'All fields are required' });
-  }
+  const file = await File.findOne({ uuid });
+  if (file.sender) return res.status(422).send({ error: 'Email already sent' });
 
-  try {
-    // Fetch file from DB
-    const file = await File.findOne({ uuid: uuid });
-    if (!file) {
-      return res.status(404).send({ error: 'File not found' });
-    }
+  file.sender = emailFrom;
+  file.receiver = emailTo;
 
-    // Check if mail already sent
-    if (file.sender) {
-      return res.status(422).send({ error: 'Email already sent once' });
-    }
+  const response = await file.save();
 
-    file.sender = emailFrom;
-    file.receiver = emailTo;
+  sendMail({
+    from: emailFrom,
+    to: emailTo,
+    subject: 'File Shared with You',
+    text: `${emailFrom} shared a file with you.`,
+    html: `
+      <p>${emailFrom} shared a file with you.</p>
+      <p>Click <a href="${process.env.BASE_URL}/api/files/${file.uuid}">here</a> to download.</p>
+      <p>Link expires in 24 hours.</p>
+    `
+  });
 
-    await file.save();
-
-    // Send the email
-    await sendMail({
-      from: emailFrom,
-      to: emailTo,
-      subject: 'Share-Me File Sharing',
-      text: `${emailFrom} shared a file with you.`,
-      html: `
-        <p><strong>${emailFrom}</strong> has shared a file with you.</p>
-        <p>Click the link below to download:</p>
-        <a href="${process.env.BASE_URL}/api/files/${file.uuid}">Download File</a>
-        <p>File size: ${(file.size / 1024).toFixed(2)} KB</p>
-        <p>Link expires in 24 hours.</p>
-      `
-    });
-
-    return res.status(200).send({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).send({ error: 'Something went wrong during email sending' });
-  }
+  res.send({ success: true });
 };
-
