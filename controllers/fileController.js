@@ -50,7 +50,7 @@ exports.getFile = async (req, res) => {
     res.render('download', {
       fileName: file.filename,
       fileSize: file.size,
-      downloadLink: `${process.env.BASE_URL}/api/files/download/${file.uuid}`
+      downloadLink: `${process.env.BASE_URL}/files/download/${file.uuid}` // ✅ CORRECT
     });
   } catch (err) {
     res.status(500).send('Something went wrong');
