@@ -23,7 +23,7 @@ exports.uploadFile = async (req, res) => {
 
     const file = new File({
       filename: req.file.filename,
-      uuid: uuidv4(), // ✅ Correct usage
+      uuid: uuidv4(),
       path: req.file.path,
       size: req.file.size,
     });
@@ -42,7 +42,6 @@ exports.getFile = async (req, res) => {
   try {
     const file = await File.findOne({ uuid: req.params.uuid });
     if (!file) {
-      // Render the page with an error message
       return res.render('download', { locals: { error: 'File not found' } });
     }
 
@@ -55,7 +54,6 @@ exports.getFile = async (req, res) => {
     res.status(500).send('Something went wrong');
   }
 };
-
 
 exports.downloadFile = async (req, res) => {
   try {
@@ -71,15 +69,18 @@ exports.downloadFile = async (req, res) => {
 
 exports.sendFile = async (req, res) => {
   const { uuid, emailTo, emailFrom } = req.body;
-  if (!uuid || !emailTo || !emailFrom) return res.status(422).send({ error: 'All fields are required' });
+  if (!uuid || !emailTo || !emailFrom) {
+    return res.status(422).send({ error: 'All fields are required' });
+  }
 
   const file = await File.findOne({ uuid });
-  if (file.sender) return res.status(422).send({ error: 'Email already sent' });
+  if (file.sender) {
+    return res.status(422).send({ error: 'Email already sent' });
+  }
 
   file.sender = emailFrom;
   file.receiver = emailTo;
-
-  const response = await file.save();
+  await file.save();
 
   sendMail({
     from: emailFrom,
