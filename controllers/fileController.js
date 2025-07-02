@@ -1,5 +1,5 @@
 const multer = require('multer');
-const { v4: uuid4 } = require('uuid');
+const { v4: uuidv4 } = require('uuid'); // ✅ Correct import
 const File = require('../models/file');
 const sendMail = require('../services/mailService');
 const path = require('path');
@@ -23,7 +23,7 @@ exports.uploadFile = async (req, res) => {
 
     const file = new File({
       filename: req.file.filename,
-      uuid: uuidv4(),
+      uuid: uuidv4(), // ✅ Correct usage
       path: req.file.path,
       size: req.file.size,
     });
