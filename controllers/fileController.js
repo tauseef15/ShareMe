@@ -64,27 +64,48 @@ exports.downloadFile = async (req, res) => {
 
 exports.sendFile = async (req, res) => {
   const { uuid, emailTo, emailFrom } = req.body;
-  if (!uuid || !emailTo || !emailFrom) return res.status(422).send({ error: 'All fields are required' });
 
-  const file = await File.findOne({ uuid });
-  if (file.sender) return res.status(422).send({ error: 'Email already sent' });
+  // Validate
+  if (!uuid || !emailTo || !emailFrom) {
+    return res.status(422).send({ error: 'All fields are required' });
+  }
 
-  file.sender = emailFrom;
-  file.receiver = emailTo;
+  try {
+    // Fetch file from DB
+    const file = await File.findOne({ uuid: uuid });
+    if (!file) {
+      return res.status(404).send({ error: 'File not found' });
+    }
 
-  const response = await file.save();
+    // Check if mail already sent
+    if (file.sender) {
+      return res.status(422).send({ error: 'Email already sent once' });
+    }
 
-  sendMail({
-    from: emailFrom,
-    to: emailTo,
-    subject: 'File Shared with You',
-    text: `${emailFrom} shared a file with you.`,
-    html: `
-      <p>${emailFrom} shared a file with you.</p>
-      <p>Click <a href="${process.env.BASE_URL}/api/files/${file.uuid}">here</a> to download.</p>
-      <p>Link expires in 24 hours.</p>
-    `
-  });
+    file.sender = emailFrom;
+    file.receiver = emailTo;
 
-  res.send({ success: true });
+    await file.save();
+
+    // Send the email
+    await sendMail({
+      from: emailFrom,
+      to: emailTo,
+      subject: 'Share-Me File Sharing',
+      text: `${emailFrom} shared a file with you.`,
+      html: `
+        <p><strong>${emailFrom}</strong> has shared a file with you.</p>
+        <p>Click the link below to download:</p>
+        <a href="${process.env.BASE_URL}/api/files/${file.uuid}">Download File</a>
+        <p>File size: ${(file.size / 1024).toFixed(2)} KB</p>
+        <p>Link expires in 24 hours.</p>
+      `
+    });
+
+    return res.status(200).send({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send({ error: 'Something went wrong during email sending' });
+  }
 };
+
