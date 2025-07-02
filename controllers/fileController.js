@@ -15,6 +15,7 @@ let storage = multer.diskStorage({
 
 let upload = multer({ storage, limits: { fileSize: 100000000 } }).single('myfile');
 
+// Upload Controller
 exports.uploadFile = async (req, res) => {
   try {
     if (!req.file) {
@@ -38,11 +39,11 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
+// Render download page
 exports.getFile = async (req, res) => {
   try {
     const file = await File.findOne({ uuid: req.params.uuid });
     if (!file) {
-      // FIXED: pass `error` directly, not inside a nested `locals` object
       return res.render('download', { error: 'File not found' });
     }
 
@@ -56,18 +57,21 @@ exports.getFile = async (req, res) => {
   }
 };
 
+// Handle download
 exports.downloadFile = async (req, res) => {
   try {
     const file = await File.findOne({ uuid: req.params.uuid });
     if (!file) return res.status(404).json({ error: 'File not found' });
 
-    const filePath = path.resolve(__dirname, '..', file.path); // safer than string concat
+    const filePath = path.resolve(__dirname, '..', file.path);
     res.download(filePath);
   } catch (err) {
+    console.error('Download Error:', err);
     res.status(500).send({ error: 'Something went wrong' });
   }
 };
 
+// Send via email
 exports.sendFile = async (req, res) => {
   const { uuid, emailTo, emailFrom } = req.body;
   if (!uuid || !emailTo || !emailFrom) {
