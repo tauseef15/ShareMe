@@ -61,6 +61,7 @@ exports.getFile = async (req, res) => {
 exports.renderDownloadPage = async (req, res) => {
   try {
     const file = await File.findOne({ uuid: req.params.uuid });
+
     if (!file) {
       return res.render('download', {
         error: 'File not found',
@@ -70,15 +71,16 @@ exports.renderDownloadPage = async (req, res) => {
       });
     }
 
-    res.render('download', {
-      error: null, // 👈 Ensure this is always defined
+    return res.render('download', {
+      error: null,
       fileName: file.filename,
       fileSize: file.size,
       downloadLink: `/files/download/${file.uuid}`,
     });
+
   } catch (err) {
-    console.error('Render Error:', err);
-    res.render('download', {
+    console.error('Download Page Error:', err);
+    return res.render('download', {
       error: 'Something went wrong',
       fileName: null,
       fileSize: null,
