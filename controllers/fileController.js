@@ -58,6 +58,25 @@ exports.getFile = async (req, res) => {
 };
 
 // Handle download
+exports.renderDownloadPage = async (req, res) => {
+  try {
+    const file = await File.findOne({ uuid: req.params.uuid });
+    if (!file) {
+      return res.render('download', { error: 'File not found' });
+    }
+
+    return res.render('download', {
+      fileName: file.filename,
+      fileSize: file.size,
+      downloadLink: `/files/download/${file.uuid}`, // 👈 Correct link here
+    });
+  } catch (err) {
+    console.error('Render Error:', err);
+    return res.render('download', { error: 'Something went wrong' });
+  }
+};
+
+// Handle File Download
 exports.downloadFile = async (req, res) => {
   try {
     const file = await File.findOne({ uuid: req.params.uuid });

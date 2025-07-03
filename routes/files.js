@@ -33,7 +33,7 @@ const upload = multer({ storage });
 // Routes
 router.post('/upload', upload.single('file'), uploadFile);
 router.get('/:uuid', getFile);
-router.get('/download/:uuid', downloadFile);
 router.post('/send', sendFile);
-
+router.get('/files/:uuid', filesController.renderDownloadPage);
+router.get('/files/download/:uuid', filesController.downloadFile);
 module.exports = router;
