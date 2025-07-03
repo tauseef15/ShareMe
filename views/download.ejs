@@ -28,7 +28,7 @@
       <!-- Server Error -->
       <% if (error) { %>
         <h4 class="text-white text-base sm:text-lg mt-4">
-          <%= error %> 😏
+        <% var error = typeof error !== 'undefined' ? error : null; %>
         </h4>
       <% } else { %>
 
